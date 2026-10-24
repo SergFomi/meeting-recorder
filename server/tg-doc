@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""usage: tg-doc <thread_id> <файл> [подпись]  -> шлёт файл в тему (топик) Telegram-группы от имени вашего бота.
+Из файла ~/.tg-doc.env читаются TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID (формат KEY=VALUE). Токен нигде не печатается."""
+import json
+import os
+import sys
+import urllib.request
+import uuid
+
+if len(sys.argv) < 3:
+    print(__doc__)
+    sys.exit(2)
+thread, path = sys.argv[1], sys.argv[2]
+caption = sys.argv[3] if len(sys.argv) > 3 else ""
+
+env = {}
+for line in open(os.path.expanduser("~/.tg-doc.env"), encoding="utf-8"):
+    line = line.strip()
+    if "=" in line and not line.startswith("#"):
+        k, v = line.split("=", 1)
+        env[k] = v.strip().strip("\"'")
+tok = env["TELEGRAM_BOT_TOKEN"]
+CHAT = env["TELEGRAM_CHAT_ID"]
+
+boundary = uuid.uuid4().hex
+parts = []
+for k, v in (("chat_id", CHAT), ("message_thread_id", thread), ("caption", caption[:1000])):
+    parts.append(('--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n' % (boundary, k, v)).encode("utf-8"))
+name = os.path.basename(path)
+parts.append(('--%s\r\nContent-Disposition: form-data; name="document"; filename="%s"\r\n'
+              'Content-Type: text/plain; charset=utf-8\r\n\r\n' % (boundary, name)).encode("utf-8")
+             + open(path, "rb").read() + b"\r\n")
+parts.append(("--%s--\r\n" % boundary).encode())
+req = urllib.request.Request(
+    "https://api.telegram.org/bot%s/sendDocument" % tok, data=b"".join(parts),
+    headers={"Content-Type": "multipart/form-data; boundary=%s" % boundary})
+try:
+    r = json.loads(urllib.request.urlopen(req, timeout=60).read().decode())
+    print("ok" if r.get("ok") else "не отправлено: %s" % r.get("description"))
+    sys.exit(0 if r.get("ok") else 1)
+except urllib.error.HTTPError as e:
+    print("ошибка отправки: HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:200]))
+    sys.exit(1)
+except Exception as e:
+    print("ошибка отправки:", type(e).__name__)
+    sys.exit(1)

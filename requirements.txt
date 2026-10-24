@@ -1,0 +1,17 @@
+# torch и torchaudio ставит install.ps1 (с видеокартой NVIDIA или без)
+comtypes==1.4.17
+gigaam @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5
+numpy==2.5.4
+pillow==13.0.0
+psutil==7.2.2
+PyAudioWPatch==0.2.12.9
+pycaw==20260927
+pystray==0.19.5
+silero-vad==6.2.3
+soundfile==0.14.0
+sentencepiece==0.2.2
+hydra-core==1.3.7
+omegaconf==2.3.1
+onnx==1.19.1
+onnxruntime==1.23.2
+pytest==9.1.1
